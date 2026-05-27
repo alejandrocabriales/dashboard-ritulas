@@ -48,21 +48,19 @@ function LoginForm() {
       <input type="hidden" name="next" value={nextPath} />
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-700">Email</label>
-        <Input 
-          name="email" 
-          type="email" 
-          required 
-          defaultValue="gcabriales@gmail.com" 
+        <Input
+          name="email"
+          type="email"
+          required
           placeholder="email@ejemplo.com"
         />
       </div>
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-700">Contraseña</label>
-        <Input 
-          name="password" 
-          type="password" 
-          required 
-          defaultValue="123456789" 
+        <Input
+          name="password"
+          type="password"
+          required
           placeholder="••••••••"
         />
       </div>

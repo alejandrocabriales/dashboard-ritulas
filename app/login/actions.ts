@@ -1,8 +1,10 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { AUTH_COOKIE_NAME } from "@/lib/constants";
 import { signSession } from "@/lib/session";
+import { loginToBackend } from "@/lib/api";
 
 export type LoginState =
   | { ok: true; next: string }
@@ -23,14 +25,27 @@ export async function login(
       ? rawNext
       : "/dashboard/reservas";
 
-  const adminEmail = process.env.ADMIN_EMAIL || "gcabriales@gmail.com";
-  const adminPassword = process.env.ADMIN_PASSWORD || "123456789";
+  // El backend es la única fuente de identidad (users reales con argon2). No hay
+  // credenciales en env: si no hay usuario válido, no se entra.
+  const result = await loginToBackend(email, password);
 
-  if (email !== adminEmail || password !== adminPassword) {
-    return { ok: false, error: "Credenciales inválidas" };
+  if (!result.ok) {
+    // 401/400 → credenciales (no filtramos cuál falló). 429 → throttle por email.
+    // resto (red/5xx/sin BACKEND_URL → status 0) → fallo de conexión.
+    const error =
+      result.status === 401 || result.status === 400
+        ? "Credenciales inválidas"
+        : result.status === 429
+          ? "Demasiados intentos, esperá unos minutos"
+          : "No se pudo conectar, intentá de nuevo";
+    return { ok: false, error };
   }
 
-  const token = await signSession({ sub: email });
+  const token = await signSession({
+    sub: result.user.id,
+    email: result.user.email,
+    name: result.user.name,
+  });
 
   const cookieStore = await cookies();
   cookieStore.set(AUTH_COOKIE_NAME, token, {
@@ -45,4 +60,13 @@ export async function login(
   // la Server Action → loop de login. Devolvemos ok y navegamos en el cliente,
   // donde el Set-Cookie viaja en un 200 normal que la CDN sí conserva.
   return { ok: true, next };
+}
+
+// Cierra sesión: borra la cookie y vuelve a /login. El redirect() aquí sí es
+// seguro (no dependemos de conservar un Set-Cookie de alta a través del 303;
+// borrar la cookie en el 303 funciona bien).
+export async function logout() {
+  const cookieStore = await cookies();
+  cookieStore.delete(AUTH_COOKIE_NAME);
+  redirect("/login");
 }
