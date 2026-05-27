@@ -4,9 +4,9 @@ import Link from "next/link";
 import { CheckCheck, MessageCircleMore, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useActionState, Suspense } from "react";
+import { useActionState, Suspense, useEffect } from "react";
 import { login } from "./actions";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const activity = [
   {
@@ -30,9 +30,18 @@ const activity = [
 ] as const;
 
 function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/dashboard/reservas";
   const [state, action, isPending] = useActionState(login, null);
+
+  // Navegamos en el cliente cuando el login fue ok. La cookie ya viajó en el
+  // 200 de la Server Action; replace() evita dejar /login en el historial.
+  useEffect(() => {
+    if (state?.ok) {
+      router.replace(state.next);
+    }
+  }, [state, router]);
 
   return (
     <form action={action} className="space-y-5">
@@ -58,7 +67,7 @@ function LoginForm() {
         />
       </div>
 
-      {state?.error && (
+      {state && !state.ok && (
         <p className="text-sm font-medium text-rose-600">{state.error}</p>
       )}
 
