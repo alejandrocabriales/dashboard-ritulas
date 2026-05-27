@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import type { Booking, BookingCounts, BookingFilters, BookingStatus } from "./types";
 import { mockApi } from "./mock-data";
 
@@ -23,15 +22,15 @@ function buildUrl(path: string, query?: Record<string, string | undefined>) {
   return url.toString();
 }
 
-async function outgoingHeaders() {
+function outgoingHeaders() {
   const headers = new Headers({
     "Content-Type": "application/json",
   });
 
-  const cookieStore = await cookies();
-  const session = cookieStore.getAll().map((item) => `${item.name}=${item.value}`).join("; ");
-  if (session) {
-    headers.set("cookie", session);
+  // Backend's ApiKeyGuard authenticates server-to-server via x-api-key (not cookies).
+  const apiKey = process.env.BACKEND_API_KEY;
+  if (apiKey) {
+    headers.set("x-api-key", apiKey);
   }
 
   return headers;
@@ -42,7 +41,7 @@ async function requestJson<T>(path: string, init: RequestInit = {}, query?: Reco
     throw new Error("BACKEND_URL is not configured");
   }
 
-  const forwardedHeaders = await outgoingHeaders();
+  const forwardedHeaders = outgoingHeaders();
   const response = await fetch(buildUrl(path, query), {
     ...init,
     cache: "no-store",
@@ -90,7 +89,22 @@ export async function fetchBookingById(id: string): Promise<Booking | null> {
     return mockApi.fetchBookingById(id);
   }
 
-  return requestJson<Booking>(`/bookings/${id}`);
+  const response = await fetch(buildUrl(`/bookings/${id}`), {
+    cache: "no-store",
+    headers: Object.fromEntries(outgoingHeaders().entries()),
+  });
+
+  // A missing booking is a clean 404 → null so the page can call notFound().
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || `Backend request failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as Booking;
 }
 
 export async function patchBookingStatus(id: string, status: BookingStatus): Promise<Booking> {

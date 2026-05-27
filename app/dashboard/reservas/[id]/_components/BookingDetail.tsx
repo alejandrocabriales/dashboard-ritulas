@@ -46,6 +46,9 @@ export default function BookingDetail({ booking }: { booking: Booking }) {
             Requested for{" "}
             {format(new Date(booking.requestedSlot), "EEEE, d MMMM yyyy · HH:mm", { locale: es })}
           </p>
+          {booking.requestedSlotText ? (
+            <p className="mt-1 text-xs italic text-slate-400">“{booking.requestedSlotText}”</p>
+          ) : null}
         </div>
 
         <div>

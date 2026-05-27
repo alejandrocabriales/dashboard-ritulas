@@ -131,7 +131,12 @@ export default function BookingsTable({
                 </div>
                 <div className="flex items-center justify-between gap-4 border-t border-dashed border-slate-200 pt-3">
                   <span className="text-slate-500">Time slot</span>
-                  <span className="font-medium text-slate-900">{slot}</span>
+                  <span className="text-right">
+                    <span className="block font-medium text-slate-900">{slot}</span>
+                    {booking.requestedSlotText ? (
+                      <span className="block text-xs italic text-slate-400">“{booking.requestedSlotText}”</span>
+                    ) : null}
+                  </span>
                 </div>
               </div>
 

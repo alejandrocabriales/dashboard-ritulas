@@ -52,6 +52,9 @@ export default function BookingsRow({
       </td>
       <td className="px-4 py-4 align-top">
         <div className="text-sm font-medium text-slate-900">{slot}</div>
+        {booking.requestedSlotText ? (
+          <div className="mt-1 text-xs italic text-slate-400">“{booking.requestedSlotText}”</div>
+        ) : null}
         <div className="mt-1 text-xs text-slate-500">
           Created {format(new Date(booking.createdAt), "d MMM, HH:mm", { locale: es })}
         </div>
